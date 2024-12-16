@@ -107,8 +107,23 @@ func asyncFileReader(filename string) (chan string, error) {
 }
 
 func (b *Bpftrace) worker() {
+	enter := ""
 	for str := range b.strChan {
-		b.traceInfoChan <- StrFormatToTraceInfo(str)
+		if strings.HasPrefix(str, "Attaching") && strings.HasSuffix(str, "probes...") {
+			continue
+		}
+		if strings.Contains(str, "sys_exit_") {
+			b.traceInfoChan <- StrFormatToTraceInfo(enter, str)
+			enter = ""
+		} else {
+			if enter == "" {
+				enter = str
+			} else {
+				b.traceInfoChan <- StrFormatToTraceInfo(enter, "")
+				b.traceInfoChan <- StrFormatToTraceInfo(str, "")
+				enter = ""
+			}
+		}
 	}
 }
 
