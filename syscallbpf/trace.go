@@ -22,12 +22,17 @@ type TraceInfo struct {
 }
 
 func StrFormatToTraceInfo(enter, exit string) TraceInfo {
-	answer := TraceInfo{}
+	answer := TraceInfo{Time: time.Now()}
+
 	args := make([]ArgInfo, 0)
 	if enter != "" {
 		enter = strings.TrimSpace(enter)
 		for _, splitted := range strings.Split(enter, " ") {
 			parts := strings.Split(splitted, ":")
+
+			if parts[0] == "" {
+				continue
+			}
 			if strings.HasPrefix(parts[0], "sys_enter_") {
 				answer.SyscallName = strings.TrimPrefix(parts[0], "sys_enter_")
 				continue
@@ -54,6 +59,7 @@ func StrFormatToTraceInfo(enter, exit string) TraceInfo {
 			args = append(args, ArgInfo{parts[0], strings.Join(parts[1:], ":")})
 		}
 	}
+	answer.Args = args
 	if exit != "" {
 		exit = strings.TrimSpace(exit)
 		for _, splitted := range strings.Split(exit, " ") {

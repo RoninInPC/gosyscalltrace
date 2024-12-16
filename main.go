@@ -10,7 +10,7 @@ func main() {
 	bpftrace.AddSyscall(syscallbpf.Syscall{
 		SyscallName:    "sys_enter_openat",
 		GetRet:         true,
-		GetTime:        true,
+		GetTime:        false,
 		GetPID:         true,
 		GetUID:         true,
 		GetProcessName: true,

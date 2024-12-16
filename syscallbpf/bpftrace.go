@@ -14,14 +14,16 @@ import (
 
 type Bpftrace struct {
 	sync.RWMutex
+	cmd           *exec.Cmd
 	strChan       chan string
+	endChan       chan bool
 	traceInfoChan chan TraceInfo
 	fileInput     string
 	fileOutput    string
 }
 
 func NewBpftrace(fileInput, fileOutput string) *Bpftrace {
-	return &Bpftrace{strChan: make(chan string, 1000), traceInfoChan: make(chan TraceInfo, 1000), fileInput: fileInput, fileOutput: fileOutput}
+	return &Bpftrace{fileInput: fileInput, fileOutput: fileOutput}
 }
 
 func (b *Bpftrace) AddSyscall(syscall Syscall) {
@@ -36,18 +38,21 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 	defer b.Unlock()
 	fp, err := os.Create(b.fileOutput)
 	fp.Close()
+	b.cmd = exec.Command("bpftrace", "-o", b.fileOutput, b.fileInput)
 
-	cmd := exec.Command("bpftrace", "-o", b.fileOutput, b.fileInput)
-	go cmd.Run()
+	b.endChan = make(chan bool)
+	b.strChan = make(chan string, 1000)
+	b.traceInfoChan = make(chan TraceInfo, 1000)
+	go b.cmd.Run()
 	if err != nil {
 		panic(err)
 	}
-	b.strChan, _ = asyncFileReader(b.fileOutput)
+	b.strChan, _ = b.asyncFileReader(b.fileOutput)
 	go b.worker()
-	return cmd
+	return b.cmd
 }
 
-func asyncFileReader(filename string) (chan string, error) {
+func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 	file, err := os.Open(filename)
 	channel := make(chan string)
 	if err != nil {
@@ -59,47 +64,56 @@ func asyncFileReader(filename string) (chan string, error) {
 
 	go func() {
 		for {
-			// Проверяем, изменилась ли длина файла
-			fileInfo, err := file.Stat()
-			if err != nil {
-				log.Printf("Ошибка получения информации о файле: %v", err)
-				continue // Пробуем снова
-			}
-
-			fileSize := fileInfo.Size()
-			if fileSize < currentPosition {
-				log.Println("Файл был обрезан. Сбрасываем позицию чтения")
-				currentPosition = 0
-				_, err = file.Seek(currentPosition, io.SeekStart)
+			select {
+			case <-b.endChan:
+				close(b.strChan)
+				close(b.traceInfoChan)
+				close(b.endChan)
+				b.cmd.Process.Kill()
+				return
+			default:
+				// Проверяем, изменилась ли длина файла
+				fileInfo, err := file.Stat()
 				if err != nil {
-					log.Fatalf("Ошибка перемещения в начало файла: %v", err)
+					log.Printf("Ошибка получения информации о файле: %v", err)
+					continue // Пробуем снова
 				}
+
+				fileSize := fileInfo.Size()
+				if fileSize < currentPosition {
+					log.Println("Файл был обрезан. Сбрасываем позицию чтения")
+					currentPosition = 0
+					_, err = file.Seek(currentPosition, io.SeekStart)
+					if err != nil {
+						log.Fatalf("Ошибка перемещения в начало файла: %v", err)
+					}
+					reader = bufio.NewReader(file)
+
+				}
+
+				// Переходим к позиции
+				_, err = file.Seek(currentPosition, io.SeekStart)
+
+				if err != nil && err != io.EOF {
+					log.Fatalf("Ошибка перемещения в файле: %v", err)
+				}
+
 				reader = bufio.NewReader(file)
 
-			}
+				for {
+					line, err := reader.ReadString('\n')
 
-			// Переходим к позиции
-			_, err = file.Seek(currentPosition, io.SeekStart)
+					// Если EOF то мы добрались до конца новых данных
+					if err == io.EOF {
+						break
+					}
 
-			if err != nil && err != io.EOF {
-				log.Fatalf("Ошибка перемещения в файле: %v", err)
-			}
-
-			reader = bufio.NewReader(file)
-
-			for {
-				line, err := reader.ReadString('\n')
-
-				// Если EOF то мы добрались до конца новых данных
-				if err == io.EOF {
-					break
+					if err != nil {
+						break
+					}
+					channel <- line
+					currentPosition += int64(len(line))
 				}
-
-				if err != nil {
-					break
-				}
-				channel <- line
-				currentPosition += int64(len(line))
 			}
 		}
 	}()
@@ -109,10 +123,10 @@ func asyncFileReader(filename string) (chan string, error) {
 func (b *Bpftrace) worker() {
 	enter := ""
 	for str := range b.strChan {
-		if strings.HasPrefix(str, "Attaching") && strings.HasSuffix(str, "probes...") {
+		if strings.HasPrefix(str, "Attaching") && strings.HasSuffix(str, "probes...\n") {
 			continue
 		}
-		if strings.Contains(str, "sys_exit_") {
+		if strings.HasPrefix(str, "sys_exit_") {
 			b.traceInfoChan <- StrFormatToTraceInfo(enter, str)
 			enter = ""
 		} else {
@@ -129,4 +143,8 @@ func (b *Bpftrace) worker() {
 
 func (b *Bpftrace) Events() <-chan TraceInfo {
 	return b.traceInfoChan
+}
+
+func (b *Bpftrace) Stop() {
+	b.endChan <- true
 }
