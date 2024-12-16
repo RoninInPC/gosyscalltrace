@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="192.168.0.128" id="d21ddee8-3908-4076-addf-8fad54209c15" port="22" nameFormat="DESCRIPTIVE" username="kali" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>

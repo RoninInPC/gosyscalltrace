@@ -1,6 +1,9 @@
-package syscall
+package syscallbpf
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Format string
 
@@ -28,5 +31,6 @@ func (a Args) ToBpftraceFormat() (string, string) {
 			args += fmt.Sprintf("args->%s, ", arg.Arg)
 		}
 	}
+	args = strings.TrimSuffix(args, ", ")
 	return format, args
 }

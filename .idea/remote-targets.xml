@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteTargetsManager">
+    <targets>
+      <target name="kali@192.168.0.128:22" type="ssh/sftp" uuid="9276fa44-5574-40ab-b5d7-58d84737e7e7">
+        <config>
+          <option name="projectRootOnTarget" value="/home/kali/gosyscalltrace" />
+          <option name="serverName" value="kali@192.168.0.128:22 password" />
+        </config>
+        <ContributedStateBase type="GoLanguageRuntime">
+          <config />
+        </ContributedStateBase>
+      </target>
+    </targets>
+  </component>
+</project>

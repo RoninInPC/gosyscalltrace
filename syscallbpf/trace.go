@@ -1,6 +1,8 @@
-package syscall
+package syscallbpf
 
-import "time"
+import (
+	"time"
+)
 
 type ArgInfo struct {
 	Name  string
@@ -18,5 +20,5 @@ type TraceInfo struct {
 }
 
 func StrFormatToTraceInfo(s string) TraceInfo {
-	return TraceInfo{}
+	return TraceInfo{SyscallName: s}
 }

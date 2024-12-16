@@ -1,4 +1,4 @@
-package syscall
+package syscallbpf
 
 import (
 	"fmt"
@@ -24,9 +24,9 @@ func (s Syscall) ToBpftraceFormat() string {
 	format, args := s.Args.ToBpftraceFormat()
 	formatAnother, argsAnother := s.toBpftraceAnotherArgsFormat()
 	s.SyscallName = strings.TrimPrefix(s.SyscallName, "sys_enter_")
-	enterWrite := fmt.Sprintf("tracepoint:syscalls:sys_enter_%s{ printf(\"sys_enter_%s: %s %s\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, format, argsAnother, args)
+	enterWrite := fmt.Sprintf("tracepoint:syscalls:sys_enter_%s{ printf(\"sys_enter_%s: %s %s\\n\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, format, argsAnother, args)
 	if s.GetRet {
-		exitWite := fmt.Sprintf("tracepoint:syscalls:sys_exit_%s{ printf(\"sys_exit_%s: %s %s\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, "%d", argsAnother, "args->ret")
+		exitWite := fmt.Sprintf("tracepoint:syscalls:sys_exit_%s{ printf(\"sys_exit_%s: %s %s\\n\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, "%d", argsAnother, "args->ret")
 		return fmt.Sprintf("%s\n%s", enterWrite, exitWite)
 	}
 	return enterWrite + "\n"
@@ -36,7 +36,7 @@ func (s Syscall) toBpftraceAnotherArgsFormat() (string, string) {
 	format := ""
 	args := ""
 	if s.GetTime {
-		format += "nanosec:%d "
+		format += "nanosec:%llu "
 		args += "nsecs, "
 	}
 	if s.GetPID {
