@@ -18,13 +18,13 @@ type TraceInfo struct {
 	Process     string
 	Time        time.Time
 	Ret         string
-	Args        []ArgInfo
+	Args        map[string]string
 }
 
 func StrFormatToTraceInfo(enter, exit string) TraceInfo {
 	answer := TraceInfo{Time: time.Now()}
 
-	args := make([]ArgInfo, 0)
+	args := make(map[string]string)
 	if enter != "" {
 		enter = strings.TrimSpace(enter)
 		for _, splitted := range strings.Split(enter, " ") {
@@ -56,7 +56,7 @@ func StrFormatToTraceInfo(enter, exit string) TraceInfo {
 				}
 				continue
 			}
-			args = append(args, ArgInfo{parts[0], strings.Join(parts[1:], ":")})
+			args[parts[0]] = strings.Join(parts[1:], ":")
 		}
 	}
 	answer.Args = args
