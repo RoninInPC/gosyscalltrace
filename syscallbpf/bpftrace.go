@@ -5,7 +5,6 @@ import (
 	"errors"
 	"gosyscalltrace/syscallsenter"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -38,6 +37,7 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 	defer b.Unlock()
 	fp, err := os.Create(b.fileOutput)
 	fp.Close()
+	_ = os.Setenv("BPFTRACE_STRLEN", "128")
 	b.cmd = exec.Command("bpftrace", "-o", b.fileOutput, b.fileInput)
 
 	b.endChan = make(chan bool)
@@ -60,8 +60,6 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 	}
 
 	reader := bufio.NewReader(file)
-	var currentPosition int64 = 0 // Начальная позиция
-
 	go func() {
 		for {
 			select {
@@ -72,32 +70,6 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 				b.cmd.Process.Kill()
 				return
 			default:
-				// Проверяем, изменилась ли длина файла
-				fileInfo, err := file.Stat()
-				if err != nil {
-					log.Printf("Ошибка получения информации о файле: %v", err)
-					continue // Пробуем снова
-				}
-
-				fileSize := fileInfo.Size()
-				if fileSize < currentPosition {
-					log.Println("Файл был обрезан. Сбрасываем позицию чтения")
-					currentPosition = 0
-					_, err = file.Seek(currentPosition, io.SeekStart)
-					if err != nil {
-						log.Fatalf("Ошибка перемещения в начало файла: %v", err)
-					}
-					reader = bufio.NewReader(file)
-
-				}
-
-				// Переходим к позиции
-				_, err = file.Seek(currentPosition, io.SeekStart)
-
-				if err != nil && err != io.EOF {
-					log.Fatalf("Ошибка перемещения в файле: %v", err)
-				}
-
 				reader = bufio.NewReader(file)
 
 				for {
@@ -112,7 +84,10 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 						break
 					}
 					channel <- line
-					currentPosition += int64(len(line))
+				}
+				err = os.Truncate(filename, 0)
+				if err != nil {
+					continue
 				}
 			}
 		}
