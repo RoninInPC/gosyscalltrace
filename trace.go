@@ -1,4 +1,4 @@
-package syscallbpf
+package gosyscalltrace
 
 import (
 	"strconv"

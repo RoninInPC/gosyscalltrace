@@ -1,9 +1,8 @@
-package syscallbpf
+package gosyscalltrace
 
 import (
 	"bufio"
 	"errors"
-	"gosyscalltrace/syscallsenter"
 	"io"
 	"os"
 	"os/exec"
@@ -26,7 +25,7 @@ func NewBpftrace(fileInput, fileOutput string) *Bpftrace {
 }
 
 func (b *Bpftrace) AddSyscall(syscall Syscall) {
-	if !syscallsenter.Exists(strings.TrimPrefix(syscall.SyscallName, "sys_enter_")) {
+	if !Exists(strings.TrimPrefix(syscall.SyscallName, "sys_enter_")) {
 		panic(errors.New("Wrong syscallbpf name. Need Initialization for update syscalls or write true syscallbpf name."))
 	}
 	os.WriteFile(b.fileInput, []byte(syscall.ToBpftraceFormat()), 777)

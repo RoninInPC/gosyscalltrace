@@ -1,4 +1,4 @@
-package syscallsexit
+package gosyscalltrace
 
 var sysCallsExit = map[string]string{
 	"accept4":                 "ret",
@@ -348,11 +348,6 @@ var sysCallsExit = map[string]string{
 	"landlock_create_ruleset": "ret",
 }
 
-func Exists(syscall string) bool {
-	_, ok := sysCallsExit[syscall]
-	return ok
-}
-
-func SetSyscalls(syscalls map[string]string) {
+func SetSyscallsExit(syscalls map[string]string) {
 	sysCallsExit = syscalls
 }
