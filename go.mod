@@ -1,1 +1,1 @@
-module gosyscalltrace
+module github.com/RoninInPC/gosyscalltrace
