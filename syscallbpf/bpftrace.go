@@ -29,7 +29,14 @@ func (b *Bpftrace) AddSyscall(syscall Syscall) {
 	if !syscallsenter.Exists(strings.TrimPrefix(syscall.SyscallName, "sys_enter_")) {
 		panic(errors.New("Wrong syscallbpf name. Need Initialization for update syscalls or write true syscallbpf name."))
 	}
-	os.WriteFile(b.fileInput, []byte(syscall.ToBpftraceFormat()), 777)
+	f, err := os.OpenFile(b.fileInput, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(syscall.ToBpftraceFormat()); err != nil {
+		panic(err)
+	}
 }
 
 func (b *Bpftrace) Trace() *exec.Cmd {
