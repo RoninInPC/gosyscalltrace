@@ -1,4 +1,4 @@
-package syscallsenter
+package gosyscalltrace
 
 var sysCallsEnter = map[string]string{
 	"setresgid":               "rgid egid sgid",
@@ -357,6 +357,6 @@ func GetArgs(syscall string) {
 
 }
 
-func SetSyscalls(syscalls map[string]string) {
+func SetSyscallsEnter(syscalls map[string]string) {
 	sysCallsEnter = syscalls
 }

@@ -1,9 +1,7 @@
-package initialization
+package gosyscalltrace
 
 import (
 	"encoding/json"
-	"gosyscalltrace/syscallsenter"
-	"gosyscalltrace/syscallsexit"
 	"log"
 	"os"
 	"path/filepath"
@@ -80,8 +78,8 @@ func InitSyscalls() {
 	log.Println("sys_enter:", enter)
 	log.Println("sys_exit:", exit)
 
-	syscallsenter.SetSyscalls(enter)
-	syscallsexit.SetSyscalls(exit)
+	SetSyscallsEnter(enter)
+	SetSyscallsExit(exit)
 }
 
 func saveMapJson(m map[string]string, file string) error {
