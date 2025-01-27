@@ -28,7 +28,7 @@ func (b *Bpftrace) AddSyscall(syscall Syscall) {
 	if !Exists(strings.TrimPrefix(syscall.SyscallName, "sys_enter_")) {
 		panic(errors.New("Wrong syscallbpf name. Need Initialization for update syscalls or write true syscallbpf name."))
 	}
-	f, err := os.OpenFile(b.fileInput, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile(b.fileInput, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		panic(err)
 	}
