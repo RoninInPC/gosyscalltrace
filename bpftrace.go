@@ -59,13 +59,7 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 }
 
 func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
-	file, err := os.Open(filename)
 	channel := make(chan string)
-	if err != nil {
-		return nil, err
-	}
-
-	reader := bufio.NewReader(file)
 	go func() {
 		for {
 			select {
@@ -76,8 +70,8 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 				b.cmd.Process.Kill()
 				return
 			default:
-				reader = bufio.NewReader(file)
-
+				file, err := os.Open(filename)
+				reader := bufio.NewReader(file)
 				for {
 					line, err := reader.ReadString('\n')
 
@@ -91,7 +85,11 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 					}
 					channel <- line
 				}
-				err = os.Truncate(filename, 0)
+				err = file.Truncate(0)
+				if err != nil {
+					continue
+				}
+				err = file.Close()
 				if err != nil {
 					continue
 				}
