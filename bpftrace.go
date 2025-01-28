@@ -44,7 +44,7 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 	fp, err := os.Create(b.fileOutput)
 	fp.Close()
 	_ = os.Setenv("BPFTRACE_STRLEN", "128")
-	b.cmd = exec.Command("bpftrace", "-o", b.fileOutput, b.fileInput)
+	b.cmd = exec.Command("bpftrace", b.fileInput)
 
 	b.endChan = make(chan bool)
 	b.strChan = make(chan string, 1000)
@@ -53,12 +53,12 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 	if err != nil {
 		panic(err)
 	}
-	b.strChan, _ = b.asyncFileReader(b.fileOutput)
+	b.strChan, _ = b.asyncFileReader()
 	go b.worker()
 	return b.cmd
 }
 
-func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
+func (b *Bpftrace) asyncFileReader() (chan string, error) {
 	channel := make(chan string)
 	go func() {
 		for {
@@ -70,8 +70,8 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 				b.cmd.Process.Kill()
 				return
 			default:
-				file, err := os.Open(filename)
-				reader := bufio.NewReader(file)
+				pipes, _ := b.cmd.StdoutPipe()
+				reader := bufio.NewReader(pipes)
 				for {
 					line, err := reader.ReadString('\n')
 
@@ -84,14 +84,6 @@ func (b *Bpftrace) asyncFileReader(filename string) (chan string, error) {
 						break
 					}
 					channel <- line
-				}
-				err = file.Truncate(0)
-				if err != nil {
-					continue
-				}
-				err = file.Close()
-				if err != nil {
-					continue
 				}
 			}
 		}
