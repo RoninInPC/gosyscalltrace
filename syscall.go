@@ -25,9 +25,11 @@ func (s Syscall) ToBpftraceFormat() string {
 	formatAnother, argsAnother := s.toBpftraceAnotherArgsFormat()
 	s.SyscallName = strings.TrimPrefix(s.SyscallName, "sys_enter_")
 	enterWrite := fmt.Sprintf("tracepoint:syscalls:sys_enter_%s{ printf(\"sys_enter_%s: %s %s\\n\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, format, argsAnother, args)
+	enterWrite = strings.Replace(enterWrite, ",  );}", ");}", -1)
 	if s.GetRet {
-		exitWite := fmt.Sprintf("tracepoint:syscalls:sys_exit_%s{ printf(\"sys_exit_%s: %s %s\\n\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, "ret:%d", argsAnother, "args->ret")
-		return fmt.Sprintf("%s\n%s", enterWrite, exitWite)
+		exitWrite := fmt.Sprintf("tracepoint:syscalls:sys_exit_%s{ printf(\"sys_exit_%s: %s %s\\n\",%s %s);}", s.SyscallName, s.SyscallName, formatAnother, "ret:%d", argsAnother, "args->ret")
+		exitWrite = strings.Replace(exitWrite, ",  );}", ");}", -1)
+		return fmt.Sprintf("%s\n%s\n", enterWrite, exitWrite)
 	}
 	return enterWrite + "\n"
 }
