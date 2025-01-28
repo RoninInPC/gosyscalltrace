@@ -60,22 +60,11 @@ func (b *Bpftrace) Trace() *exec.Cmd {
 func (b *Bpftrace) asyncFileReader() (chan string, error) {
 	channel := make(chan string)
 	go func() {
-		for {
-			select {
-			case <-b.endChan:
-				close(b.strChan)
-				close(b.traceInfoChan)
-				close(b.endChan)
-				b.cmd.Process.Kill()
-				return
-			default:
-				pipes, _ := b.cmd.StdoutPipe()
-				scanner := bufio.NewScanner(pipes)
-				for scanner.Scan() {
-					line := scanner.Text()
-					channel <- line
-				}
-			}
+		pipes, _ := b.cmd.StdoutPipe()
+		scanner := bufio.NewScanner(pipes)
+		for scanner.Scan() {
+			line := scanner.Text()
+			channel <- line
 		}
 	}()
 	return channel, nil
