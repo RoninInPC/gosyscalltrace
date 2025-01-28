@@ -3,7 +3,6 @@ package gosyscalltrace
 import (
 	"bufio"
 	"errors"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -71,18 +70,9 @@ func (b *Bpftrace) asyncFileReader() (chan string, error) {
 				return
 			default:
 				pipes, _ := b.cmd.StdoutPipe()
-				reader := bufio.NewReader(pipes)
-				for {
-					line, err := reader.ReadString('\n')
-
-					// Если EOF то мы добрались до конца новых данных
-					if err == io.EOF {
-						break
-					}
-
-					if err != nil {
-						break
-					}
+				scanner := bufio.NewScanner(pipes)
+				for scanner.Scan() {
+					line := scanner.Text()
 					channel <- line
 				}
 			}
